@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>任務管理系統</title>
+    <!-- 引入 Bootstrap 5 美化介面 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .completed { text-decoration: line-through; color: #6c757d; }
+        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .form-control:focus { box-shadow: none; border-color: #0d6efd; }
+    </style>
+</head>
+<body>
+    <div class="container py-5" style="max-width: 600px;">
+        <h2 class="text-center mb-4 fw-bold text-dark">📝 任務管理系統</h2>
+        
+        <!-- 輸入區塊 -->
+        <div class="card p-4 mb-4">
+            <form id="task-form" class="d-flex gap-2">
+                <input type="text" id="task-title" class="form-control" placeholder="輸入你想做的事情..." required autocomplete="off">
+                <button type="submit" class="btn btn-primary px-4">新增</button>
+            </form>
+        </div>
+
+        <!-- 任務列表顯示區塊 -->
+        <div class="card p-3">
+            <ul id="task-list" class="list-group list-group-flush">
+                <li class="list-group-item text-center text-muted py-3">資料載入中...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/tasks';
+
+        // 1. 取得並渲染任務列表
+        async function fetchTasks() {
+            try {
+                const res = await fetch(API_URL);
+                const tasks = await res.json();
+                const taskList = document.getElementById('task-list');
+                
+                if (!tasks || tasks.length === 0) {
+                    taskList.innerHTML = `<li class="list-group-item text-center text-muted py-4">目前沒有任何任務，放鬆一下吧！</li>`;
+                    return;
+                }
+
+                taskList.innerHTML = tasks.map(task => `
+                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="checkbox" class="form-check-input" ${task.completed ? 'checked' : ''} 
+                                onchange="toggleTask(${task.id}, ${task.completed}, '${task.title}')">
+                            <span class="${task.completed ? 'completed' : ''} fw-medium">${task.title}</span>
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="deleteTask(${task.id})">刪除</button>
+                    </li>
+                `).join('');
+            } catch (err) {
+                console.error('無法連線至後端 API:', err);
+            }
+        }
+
+        // 2. 建立新任務
+        document.getElementById('task-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const titleInput = document.getElementById('task-title');
+            const title = titleInput.value.trim();
+            if (!title) return;
+
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title })
+            });
+
+            titleInput.value = '';
+            fetchTasks();
+        });
+
+        // 3. 切換完成狀態
+        async function toggleTask(id, currentStatus, title) {
+            await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ completed: !currentStatus, title: title })
+            });
+            fetchTasks();
+        }
+
+        // 4. 刪除任務
+        async function deleteTask(id) {
+            if (!confirm('確定要刪除這個任務嗎？')) return;
+            await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+            fetchTasks();
+        }
+
+        // 初始化
+        fetchTasks();
+    </script>
+</body>
+</html>
