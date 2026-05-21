@@ -3,98 +3,295 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>任務管理系統</title>
-    <!-- 引入 Bootstrap 5 美化介面 -->
+    <title>Dashboard | 豪華版任務管理系統</title>
+    <!-- 引入 Bootstrap 5 與 FontAwesome 圖標 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        .completed { text-decoration: line-through; color: #6c757d; }
-        body { background-color: #f4f6f9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .form-control:focus { box-shadow: none; border-color: #0d6efd; }
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --card-blur: blur(16px);
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* 磨砂玻璃面板效果 */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: var(--card-blur);
+            -webkit-backdrop-filter: var(--card-blur);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* 表單與輸入框美化 */
+        .form-control, .form-select {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--glass-border);
+            color: #f8fafc !important;
+            border-radius: 10px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+        }
+
+        .form-control::placeholder { color: #64748b; }
+
+        /* 任務條目動畫與設計 */
+        .task-item {
+            border-left: 5px solid #64748b;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeIn 0.5s ease backwards;
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.06) !important;
+        }
+
+        /* 優先級顏色線 */
+        .priority-high { border-left-color: #ef4444; }
+        .priority-medium { border-left-color: #f59e0b; }
+        .priority-low { border-left-color: #10b981; }
+
+        /* 已完成樣式 */
+        .task-completed {
+            opacity: 0.5;
+            background: rgba(255, 255, 255, 0.01) !important;
+        }
+        .task-completed .task-text {
+            text-decoration: line-through;
+            color: #94a3b8;
+        }
+
+        /* 客製化 Checkbox */
+        .form-check-input {
+            width: 1.3em;
+            height: 1.3em;
+            background-color: transparent;
+            border: 2px solid #64748b;
+            cursor: pointer;
+        }
+        .form-check-input:checked {
+            background-color: #6366f1;
+            border-color: #6366f1;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 狀態標籤 */
+        .badge-cat { background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+        
+        /* 統計進度條 */
+        .progress { background: rgba(15, 23, 42, 0.6); height: 10px; border-radius: 5px; }
+        .progress-bar { background: linear-gradient(90deg, #6366f1, #a855f7); }
     </style>
 </head>
 <body>
-    <div class="container py-5" style="max-width: 600px;">
-        <h2 class="text-center mb-4 fw-bold text-dark">📝 任務管理系統</h2>
+
+    <div class="container py-5" style="max-width: 800px;">
         
-        <!-- 輸入區塊 -->
-        <div class="card p-4 mb-4">
-            <form id="task-form" class="d-flex gap-2">
-                <input type="text" id="task-title" class="form-control" placeholder="輸入你想做的事情..." required autocomplete="off">
-                <button type="submit" class="btn btn-primary px-4">新增</button>
+        <!-- 頂部豪華 Dashboard 統計區塊 -->
+        <div class="glass-card p-4 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="fw-bold m-0 text-white"><i class="fa-solid fa-shapes text-indigo-400 me-2"></i>任務儀表板</h2>
+                <p class="text-muted m-0 mt-1">掌握你的今日進度與專案規劃</p>
+            </div>
+            <div class="text-end">
+                <span class="fs-4 fw-bold text-info" id="completion-ratio">0%</span>
+                <div class="text-muted small">總進度</div>
+                <div class="progress mt-2" style="width: 120px;">
+                    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 篩選器與分類切換 -->
+        <div class="d-flex gap-2 mb-4 overflow-x-auto pb-2">
+            <button class="btn btn-sm glass-card text-white px-3 active-filter btn-primary" onclick="filterTasks('all')">全部</button>
+            <button class="btn btn-sm glass-card text-white px-3" onclick="filterTasks('工作')">💼 工作</button>
+            <button class="btn btn-sm glass-card text-white px-3" onclick="filterTasks('生活')">🏠 生活</button>
+            <button class="btn btn-sm glass-card text-white px-3" onclick="filterTasks('學習')">🎓 學習</button>
+        </div>
+
+        <!-- 輸入控制核心區塊 -->
+        <div class="glass-card p-4 mb-4">
+            <form id="task-form">
+                <div class="row g-3">
+                    <div class="col-12">
+                        <input type="text" id="task-title" class="form-control form-control-lg text-white" placeholder="✍️ 有什麼新任務？" required autocomplete="off">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted mb-1">分類</label>
+                        <select id="task-category" class="form-select">
+                            <option value="一般">📁 一般</option>
+                            <option value="工作">💼 工作</option>
+                            <option value="生活">🏠 生活</option>
+                            <option value="學習">🎓 學習</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted mb-1">優先權</label>
+                        <select id="task-priority" class="form-select">
+                            <option value="low">🟢 低優先度</option>
+                            <option value="medium" selected>🟡 中等程度</option>
+                            <option value="high">🔴 緊急任務</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="small text-muted mb-1">截止日期</label>
+                        <input type="date" id="task-date" class="form-select">
+                    </div>
+                    <div class="col-12 text-end mt-3">
+                        <button type="submit" class="btn btn-primary px-5 fw-bold rounded-pill"><i class="fa-solid fa-plus me-1"></i> 新增任務</button>
+                    </div>
+                </div>
             </form>
         </div>
 
-        <!-- 任務列表顯示區塊 -->
-        <div class="card p-3">
-            <ul id="task-list" class="list-group list-group-flush">
-                <li class="list-group-item text-center text-muted py-3">資料載入中...</li>
-            </ul>
+        <!-- 任務動態清單 -->
+        <div class="glass-card p-3">
+            <div id="task-list" class="d-flex flex-column gap-2">
+                <div class="text-center text-muted py-5"><i class="fa-solid fa-circle-notch fa-spin fs-4"></i></div>
+            </div>
         </div>
+        
     </div>
 
     <script>
         const API_URL = '/tasks';
+        let allTasks = [];
+        let currentFilter = 'all';
 
-        // 1. 取得並渲染任務列表
+        // 1. 取得並更新畫面
         async function fetchTasks() {
             try {
                 const res = await fetch(API_URL);
-                const tasks = await res.json();
-                const taskList = document.getElementById('task-list');
-                
-                if (!tasks || tasks.length === 0) {
-                    taskList.innerHTML = `<li class="list-group-item text-center text-muted py-4">目前沒有任何任務，放鬆一下吧！</li>`;
-                    return;
-                }
-
-                taskList.innerHTML = tasks.map(task => `
-                    <li class="list-group-item d-flex justify-content-between align-items-center py-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <input type="checkbox" class="form-check-input" ${task.completed ? 'checked' : ''} 
-                                onchange="toggleTask(${task.id}, ${task.completed}, '${task.title}')">
-                            <span class="${task.completed ? 'completed' : ''} fw-medium">${task.title}</span>
-                        </div>
-                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="deleteTask(${task.id})">刪除</button>
-                    </li>
-                `).join('');
+                allTasks = await res.json();
+                renderTasks();
+                updateStats();
             } catch (err) {
-                console.error('無法連線至後端 API:', err);
+                console.error('API 連線異常:', err);
             }
         }
 
-        // 2. 建立新任務
+        // 2. 算分數與統計條
+        function updateStats() {
+            if(allTasks.length === 0) {
+                document.getElementById('completion-ratio').innerText = '0%';
+                document.getElementById('progress-bar').style.width = '0%';
+                return;
+            }
+            const completedCount = allTasks.filter(t => t.completed).length;
+            const percentage = Math.round((completedCount / allTasks.length) * 100);
+            document.getElementById('completion-ratio').innerText = `${percentage}%`;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+        }
+
+        // 3. 渲染過濾後的清單
+        function renderTasks() {
+            const taskList = document.getElementById('task-list');
+            const filtered = currentFilter === 'all' ? allTasks : allTasks.filter(t => t.category === currentFilter);
+
+            if (filtered.length === 0) {
+                taskList.innerHTML = `
+                    <div class="text-center text-muted py-5">
+                        <i class="fa-regular fa-folder-open fs-2 mb-2 d-block opacity-50"></i>
+                        沒有找到任何任務
+                    </div>`;
+                return;
+            }
+
+            taskList.innerHTML = filtered.map(task => {
+                const priorityMap = { high: '🔴 高', medium: '🟡 中', low: '🟢 低' };
+                return `
+                    <div class="task-item p-3 glass-card d-flex justify-content-between align-items-center priority-${task.priority} ${task.completed ? 'task-completed' : ''}">
+                        <div class="d-flex align-items-center gap-3 flex-grow-1">
+                            <input type="checkbox" class="form-check-input" ${task.completed ? 'checked' : ''} 
+                                onchange="toggleTask(${task.id}, ${task.completed})">
+                            <div class="d-flex flex-column">
+                                <span class="task-text fw-semibold fs-5 text-white">${task.title}</span>
+                                <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
+                                    <span class="badge badge-cat px-2 py-1 rounded small">${task.category}</span>
+                                    <span class="text-muted small"><i class="fa-solid fa-layer-group me-1"></i>${priorityMap[task.priority]}</span>
+                                    ${task.due_date ? `<span class="text-warning small"><i class="fa-regular fa-calendar me-1"></i>${task.due_date} 截止</span>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-link text-danger p-2" onclick="deleteTask(${task.id})"><i class="fa-solid fa-trash-can fs-5"></i></button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 4. 新增任務
         document.getElementById('task-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const titleInput = document.getElementById('task-title');
-            const title = titleInput.value.trim();
-            if (!title) return;
+            const categoryInput = document.getElementById('task-category');
+            const priorityInput = document.getElementById('task-priority');
+            const dateInput = document.getElementById('task-date');
 
             await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title })
+                body: JSON.stringify({
+                    title: titleInput.value.trim(),
+                    category: categoryInput.value,
+                    priority: priorityInput.value,
+                    due_date: dateInput.value || null
+                })
             });
 
             titleInput.value = '';
+            dateInput.value = '';
             fetchTasks();
         });
 
-        // 3. 切換完成狀態
-        async function toggleTask(id, currentStatus, title) {
+        // 5. 修改狀態
+        async function toggleTask(id, currentStatus) {
             await fetch(`${API_URL}/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ completed: !currentStatus, title: title })
+                body: JSON.stringify({ completed: !currentStatus })
             });
             fetchTasks();
         }
 
-        // 4. 刪除任務
+        // 6. 刪除
         async function deleteTask(id) {
-            if (!confirm('確定要刪除這個任務嗎？')) return;
+            if (!confirm('要刪除這項任務嗎？')) return;
             await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
             fetchTasks();
+        }
+
+        // 7. 分類按鈕控制
+        function filterTasks(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.overflow-x-auto button').forEach(b => b.classList.remove('btn-primary'));
+            event.target.classList.add('btn-primary');
+            renderTasks();
         }
 
         // 初始化
